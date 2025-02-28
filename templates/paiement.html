@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 18px;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        .btn-retour {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-retour:hover {
+            background: #0056b3;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Paiement</h1>
+        <p>Montant total à payer : {{ total }} DA</p>
+
+        <form action="{{ url_for('paiement') }}" method="POST">
+            <input type="text" name="nom" placeholder="Nom complet" required>
+            <input type="text" name="carte_bancaire" placeholder="Numéro de carte" required>
+            <button type="submit">Payer</button>
+        </form>
+
+        <a class="btn-retour" href="{{ url_for('index') }}">🏠 Retour</a>
+    </div>
+
+</body>
+</html>

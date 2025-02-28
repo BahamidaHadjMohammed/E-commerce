@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8d7da;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f5c6cb;
+        }
+
+        h1 {
+            color: #721c24;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 18px;
+            color: #721c24;
+        }
+
+        .btn-retour {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-retour:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🚫 Erreur</h1>
+        <p>{{ message }}</p>
+        <a class="btn-retour" href="{{ url_for('index') }}">🏠 Retour à l'accueil</a>
+    </div>
+
+</body>
+</html>
