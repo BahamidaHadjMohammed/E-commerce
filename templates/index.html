@@ -110,6 +110,11 @@
             {% endfor %}
         </div>
         <a class="btn-panier" href="{{ url_for('afficher_panier') }}">🛍️ Voir mon panier</a>
+
+        <!-- Bouton de paiement -->
+        <a href="{{ url_for('paiement') }}">
+            <button>Payer maintenant</button>
+        </a>
     </div>
 
 </body>
