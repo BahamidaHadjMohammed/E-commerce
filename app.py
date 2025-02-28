@@ -64,5 +64,23 @@ def vider_panier():
     session['panier'] = {}
     return redirect(url_for('afficher_panier'))
 
+@app.route('/paiement', methods=['GET', 'POST']) 
+def paiement():
+    panier = session.get('panier', {})
+
+    # Vérifier si le panier est vide ou si le total est inférieur à 1 DA
+    total = sum(produits[int(k)]['prix'] * v for k, v in panier.items() if int(k) in produits)
+    if not panier or total < 1:
+        return render_template('erreur.html', message="Votre panier est vide ou invalide.")
+
+    if request.method == 'POST':  # Si c'est un paiement
+        nom_utilisateur = request.form['nom']
+        carte_bancaire = request.form['carte_bancaire']
+        session['panier'] = {}  # Vider le panier après paiement
+        return render_template('confirmation.html', nom=nom_utilisateur, montant=total)
+
+    # Si c'est une requête GET, afficher la page de paiement
+    return render_template('paiement.html', total=total)
+
 if __name__ == '__main__':
     app.run(debug=True)
