@@ -3,114 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boutique</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
-
-        h1 {
-            color: #343a40;
-        }
-
-        .boutique-container {
-            max-width: 800px;
-            margin: 20px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .produits {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            padding: 0;
-        }
-
-        .produit {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .produit img {
-            width: 100%;
-            height: auto;
-            max-height: 150px;
-            object-fit: cover;
-            border-radius: 10px;
-        }
-
-        .produit h3 {
-            margin: 10px 0;
-            color: #343a40;
-        }
-
-        .produit p {
-            font-size: 16px;
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .btn-ajouter {
-            display: inline-block;
-            padding: 8px 12px;
-            margin-top: 10px;
-            background: #007bff;
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-
-        .btn-ajouter:hover {
-            background: #0056b3;
-        }
-
-        .btn-panier {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 15px;
-            background: #dc3545;
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-
-        .btn-panier:hover {
-            background: #c82333;
-        }
-
-    </style>
+    <title>Produits Boutique</title>
+    <link href="/static/style.css" rel="stylesheet">
 </head>
 <body>
-
-    <h1>Bienvenue dans notre boutique 🛒</h1>
-
-    <div class="boutique-container">
-        <div class="produits">
-            {% for id, produit in produits.items() %}
-            <div class="produit">
-                <img src="{{ url_for('static', filename=produit.image) }}" alt="{{ produit.nom }}">
-                <h3>{{ produit.nom }}</h3>
-                <p>{{ produit.prix }} DA</p>
-                <a class="btn-ajouter" href="{{ url_for('ajouter_au_panier', produit_id=id) }}">🛒 Ajouter au panier</a>
+<div class="container">
+    <header>
+        <h1>Bienvenue dans notre Boutique</h1>
+        <nav>
+            <a href="/cart">Voir le Panier</a>
+            <a href="/">Accueil</a>
+        </nav>
+    </header>
+    
+    <section class="add-product">
+        <h2>Ajouter un Produit</h2>
+        <form action="/add" method="post" enctype="multipart/form-data">
+            <input type="text" name="name" placeholder="Nom du produit" required>
+            <input type="number" name="quantity" placeholder="Quantité" required>
+            <input type="number" name="price" placeholder="Prix" required>
+            <input type="file" name="image" required>
+            <button type="submit">Ajouter</button>
+        </form>
+    </section>
+    
+    <section class="products">
+        <h2>Produits Disponibles</h2>
+        <div class="product-list">
+            {% for product in products %}
+            <div class="product-card">
+                <img src="../static/uploads/{{ product.image }}" alt="{{ product.name }}" width=40 height=200>
+                <h3>{{ product.name }}</h3>
+                <p>{{ product.price }} DA</p>
+                <a href="/add_to_cart/{{ product.id }}">Ajouter au Panier</a>
+                <a href="/delete/{{ product.id }}" class="delete">Supprimer</a>
             </div>
             {% endfor %}
         </div>
-        <a class="btn-panier" href="{{ url_for('afficher_panier') }}">🛍️ Voir mon panier</a>
-    </div>
-
+    </section>
+</div>
 </body>
 </html>

@@ -1,68 +1,141 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, make_response
+import sqlite3
+import os
+from werkzeug.utils import secure_filename
+from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'  # Clé secrète pour gérer la session
+app.secret_key = 'supersecretkey'
+UPLOAD_FOLDER = 'static/uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Produits disponibles (simples exemples)
-produits = {
-    1: {"nom": "Ordinateur", "prix": 70000,"image":"images/mac.jpg"},
-    2: {"nom": "Smartphone", "prix": 30000,"image":"images/smart.jpg"},
-    3: {"nom": "Casque Bluetooth", "prix": 5000,"image":"images/casque.jpg"}
-}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-# Route principale : Affichage des produits
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Connexion DB
+def get_db_connection():
+    conn = sqlite3.connect('inventory.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# Initialisation DB
+def init_db():
+    conn = get_db_connection()
+    conn.execute('''CREATE TABLE IF NOT EXISTS products (
+                      id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      name TEXT NOT NULL,
+                      quantity INTEGER NOT NULL,
+                      price INTEGER NOT NULL,
+                      image TEXT
+                   )''')
+    conn.commit()
+    conn.close()
+
 @app.route('/')
 def index():
-    return render_template('index.html', produits=produits)
+    conn = get_db_connection()
+    products = conn.execute('SELECT * FROM products').fetchall()
+    conn.close()
+    cart = session.get('cart', {})
+    return render_template('index.html', products=products, cart=cart)
 
-# Ajouter un produit au panier
-@app.route('/ajouter/<int:produit_id>')
-def ajouter_au_panier(produit_id):
-    if 'panier' not in session:
-        session['panier'] = {}
-
-    panier = session['panier']
-
-    if str(produit_id) in panier:
-        panier[str(produit_id)] += 1
-    else:
-        panier[str(produit_id)] = 1
-
-    session['panier'] = panier
+@app.route('/add', methods=['POST'])
+def add_product():
+    name = request.form['name']
+    quantity = request.form['quantity']
+    price = request.form['price']
+    image = request.files['image']
+    image_filename = ''
+    
+    if image and allowed_file(image.filename):
+        filename = secure_filename(image.filename)
+        image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        image_filename = filename
+    
+    if name and quantity.isdigit() and price.isdigit():
+        conn = get_db_connection()
+        conn.execute('INSERT INTO products (name, quantity, price, image) VALUES (?, ?, ?, ?)',
+                     (name, int(quantity), int(price), image_filename))
+        conn.commit()
+        conn.close()
     return redirect(url_for('index'))
 
-# Voir le panier
-@app.route('/panier')
-def afficher_panier():
-    panier = session.get('panier', {})
+@app.route('/delete/<int:id>')
+def delete_product(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM products WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
+
+@app.route('/add_to_cart/<int:id>')
+def add_to_cart(id):
+    conn = get_db_connection()
+    product = conn.execute('SELECT * FROM products WHERE id = ?', (id,)).fetchone()
+    conn.close()
     
-    # Correction ici 🔥
-    contenu_panier = {
-        int(k): {'nom': produits[int(k)]['nom'], 'prix': produits[int(k)]['prix'], 'quantité': v} 
-        for k, v in panier.items() if int(k) in produits
-    }
-  
+    if product:
+        cart = session.get('cart', {})
+        if str(id) in cart and cart[str(id)] < product['quantity']:
+            cart[str(id)] += 1
+        elif str(id) not in cart:
+            cart[str(id)] = 1
+        session['cart'] = cart
+    return redirect(url_for('index'))
 
-    total = sum(produits[int(k)]['prix'] * v for k, v in panier.items() if int(k) in produits)
+@app.route('/cart')
+def view_cart():
+    conn = get_db_connection()
+    products = conn.execute('SELECT * FROM products').fetchall()
+    conn.close()
+    cart = session.get('cart', {})
+    cart_items = []
+    total = 0
 
-    return render_template('panier.html', panier=contenu_panier, total=total)
+    for product_id, quantity in cart.items():
+        product = next((p for p in products if str(p['id']) == product_id), None)
+        if product:
+            cart_items.append({'id': product['id'], 'name': product['name'], 'quantity': quantity, 'price': product['price'], 'image': product['image']})
+            total += product['price'] * quantity
 
-# Supprimer un produit du panier
-@app.route('/supprimer/<int:produit_id>')
-def supprimer_du_panier(produit_id):
-    panier = session.get('panier', {})
+    return render_template('cart.html', cart=cart_items, total=total)
 
-    if str(produit_id) in panier:
-        del panier[str(produit_id)]
+@app.route('/remove_from_cart/<id>')
+def remove_from_cart(id):
+    cart = session.get('cart', {})
+    if id in cart:
+        del cart[id]
+    session['cart'] = cart
+    return redirect(url_for('view_cart'))
 
-    session['panier'] = panier
-    return redirect(url_for('afficher_panier'))
+@app.route('/generate_invoice')
+def generate_invoice():
+    cart = session.get('cart', {})
+    conn = get_db_connection()
+    products = conn.execute('SELECT * FROM products').fetchall()
+    conn.close()
 
-# Vider le panier
-@app.route('/vider')
-def vider_panier():
-    session['panier'] = {}
-    return redirect(url_for('afficher_panier'))
+    response = make_response()
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=invoice.pdf'
+
+    pdf = canvas.Canvas(response.stream)
+    pdf.drawString(100, 800, 'Facture')
+    y = 780
+
+    for product_id, quantity in cart.items():
+        product = next((p for p in products if str(p['id']) == product_id), None)
+        if product:
+            pdf.drawString(100, y, f"{product['name']} x {quantity} - {product['price']} DA")
+            y -= 20
+
+    pdf.showPage()
+    pdf.save()
+    return response
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
