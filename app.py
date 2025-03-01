@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+import stripe
 
+stripe.api_key = "sk_test_51Qv3n9JnL5qBs8X699iT0DO0Qvs0w7Ka0KOzDivOH7MD6CNGkEgfwJrGiCSkBYBqx8b99xV5MncK74fYbhsd1i9800Yor2jxML"
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'  # Clé secrète pour gérer la session
 
@@ -67,18 +69,27 @@ def vider_panier():
 @app.route('/paiement', methods=['GET', 'POST']) 
 def paiement():
     panier = session.get('panier', {})
-
-    # Vérifier si le panier est vide ou si le total est inférieur à 1 DA
     total = sum(produits[int(k)]['prix'] * v for k, v in panier.items() if int(k) in produits)
+    
     if not panier or total < 1:
         return render_template('erreur.html', message="Votre panier est vide ou invalide.")
-
+    
+    try:
+        # Création du PaymentIntent sans spécifier methode
+        intent = stripe.PaymentIntent.create(
+            amount=total * 100,  # Convertir en centimes
+            currency="dzd",
+            automatic_payment_methods={"enabled": True}  # Active les paiements automatiques
+        )
+    except stripe.error.StripeError as e:
+        return render_template('erreur.html', message=str(e))
+    
     if request.method == 'POST':  # Si c'est un paiement
         nom_utilisateur = request.form['nom']
         carte_bancaire = request.form['carte_bancaire']
         session['panier'] = {}  # Vider le panier après paiement
         return render_template('confirmation.html', nom=nom_utilisateur, montant=total)
-
+    
     # Si c'est une requête GET, afficher la page de paiement
     return render_template('paiement.html', total=total)
 
